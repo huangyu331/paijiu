@@ -99,7 +99,6 @@ const SPECIAL_HANDS = [
 const MODE_META = {
   small: { title: "小牌九", description: "标准 2 张快节奏对局" },
   challenge: { title: "挑战模式", description: "目标是在有限筹码下刷新盈利纪录" },
-  endless: { title: "无尽模式", description: "持续上桌，直到筹码耗尽" },
 };
 
 const RULES_SECTIONS = [
@@ -151,6 +150,7 @@ function boot() {
   renderRules();
   renderComboPreview();
   applyTheme();
+  setupOrientationGuard();
   awardDailyBonus();
   refreshAll();
   registerServiceWorker();
@@ -164,7 +164,6 @@ function mapElements() {
     betValue: document.getElementById("betValue"),
     gameStatus: document.getElementById("gameStatus"),
     tableTitle: document.getElementById("tableTitle"),
-    wallGrid: document.getElementById("wallGrid"),
     diceValues: document.getElementById("diceValues"),
     diceSummary: document.getElementById("diceSummary"),
     bankerTiles: document.getElementById("bankerTiles"),
@@ -191,6 +190,7 @@ function mapElements() {
     settingsDialog: document.getElementById("settingsDialog"),
     rulesContent: document.getElementById("rulesContent"),
     toastStack: document.getElementById("toastStack"),
+    orientationGuard: document.getElementById("orientationGuard"),
     openProfilesButton: document.getElementById("openProfilesButton"),
     openRulesButton: document.getElementById("openRulesButton"),
     openSettingsButton: document.getElementById("openSettingsButton"),
@@ -363,7 +363,6 @@ function refreshBet() {
 }
 
 function refreshTable() {
-  renderWall(state.ui.wall.length ? state.ui.wall : Array.from({ length: 8 }, (_, index) => ({ index, count: 4 })));
   const round = state.ui.round;
   els.gameStatus.textContent = state.ui.stage === "idle" ? "请选择模式并下注" : statusText(state.ui.stage);
   if (!round) {
@@ -374,13 +373,14 @@ function refreshTable() {
     els.bankerResultLabel.textContent = "待发牌";
     els.playerResultLabel.textContent = "待发牌";
     els.roundBanner.textContent = "押注后开始本局";
-    els.diceValues.textContent = "- -";
+    renderDice([0, 0], false);
     els.diceSummary.textContent = "尚未掷骰";
     return;
   }
 
-  els.diceValues.textContent = `${round.dice[0]} ${round.dice[1]}`;
-  els.diceSummary.textContent = `起始牌墙位置 ${round.startIndex + 1}`;
+  const visibleDice = state.ui.stage === "rolling" ? round.rollingDice || round.dice : round.dice;
+  renderDice(visibleDice, state.ui.stage === "rolling");
+  els.diceSummary.textContent = state.ui.stage === "rolling" ? "骰盅摇动中" : `起始牌墙位置 ${round.startIndex + 1}`;
   renderTiles(els.bankerTiles, round.revealed ? round.bankerTiles : [{ back: true }, { back: true }]);
   renderTiles(els.playerTiles, round.revealed ? round.playerTiles : [{ back: true }, { back: true }]);
   els.bankerHandCaption.textContent = round.revealed ? round.bankerEval.description : "庄家即将亮牌";
@@ -388,16 +388,6 @@ function refreshTable() {
   els.bankerResultLabel.textContent = round.revealed ? round.bankerEval.title : "牌背";
   els.playerResultLabel.textContent = round.revealed ? round.playerEval.title : "牌背";
   els.roundBanner.textContent = round.banner;
-}
-
-function renderWall(stacks) {
-  els.wallGrid.innerHTML = "";
-  stacks.forEach((stack, index) => {
-    const node = document.createElement("div");
-    node.className = "wall-stack";
-    node.textContent = `${index + 1}门 · ${stack.count}张`;
-    els.wallGrid.appendChild(node);
-  });
 }
 
 function renderTiles(container, tiles) {
@@ -424,6 +414,27 @@ function buildTile(tile) {
   node.appendChild(buildHalf(tile.top, "top"));
   node.appendChild(buildHalf(tile.bottom, "bottom"));
   return node;
+}
+
+function renderDice(values, rolling) {
+  const dice = Array.isArray(values) && values.length === 2 ? values : [0, 0];
+  els.diceValues.innerHTML = "";
+  dice.forEach((value, index) => {
+    const die = document.createElement("div");
+    die.className = `die-face${rolling ? " is-rolling" : ""}${value ? "" : " is-idle"}`;
+    die.setAttribute("data-value", String(value));
+    die.setAttribute("aria-hidden", "true");
+    const positions = PIP_POSITIONS[Math.max(1, Math.min(6, value || 1))];
+    positions.forEach((point) => {
+      const pip = document.createElement("span");
+      pip.className = "die-pip";
+      pip.style.left = `${point.x}%`;
+      pip.style.top = `${point.y}%`;
+      die.appendChild(pip);
+    });
+    die.style.animationDelay = `${index * 90}ms`;
+    els.diceValues.appendChild(die);
+  });
 }
 
 function buildHalf(half, position) {
@@ -666,6 +677,7 @@ async function startRound() {
     mode: state.ui.mode,
     bet,
     dice,
+    rollingDice: [randomDieValue(), randomDieValue()],
     startIndex,
     deck,
     playerTiles: [],
@@ -679,9 +691,13 @@ async function startRound() {
   await pause(450);
 
   state.ui.stage = "rolling";
+  state.ui.round.banner = "摇骰中";
+  refreshTable();
+  await animateDiceRoll(650);
+  state.ui.round.rollingDice = null;
   state.ui.round.banner = "骰子落定，决定起牌位置";
   refreshTable();
-  await pause(550);
+  await pause(180);
 
   state.ui.stage = "dealing";
   const orderedDeck = rotateDealDeck(deck, startIndex);
@@ -866,6 +882,19 @@ function rollDice() {
   return [1 + (random[0] % 6), 1 + (random[1] % 6)];
 }
 
+async function animateDiceRoll(durationMs = 650) {
+  const start = performance.now();
+  while (performance.now() - start < durationMs) {
+    state.ui.round.rollingDice = [randomDieValue(), randomDieValue()];
+    refreshTable();
+    await pause(90);
+  }
+}
+
+function randomDieValue() {
+  return 1 + Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32) * 6);
+}
+
 function applyTheme() {
   document.body.dataset.theme = state.db.preferences.theme === "light" ? "light" : "dark";
 }
@@ -879,6 +908,38 @@ function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch((error) => console.error(error));
   }
+}
+
+function setupOrientationGuard() {
+  syncOrientationGuard();
+  window.addEventListener("resize", syncOrientationGuard);
+  window.addEventListener("orientationchange", syncOrientationGuard);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      syncOrientationGuard();
+    }
+  });
+
+  if (screen.orientation?.lock) {
+    const requestLock = () => {
+      screen.orientation.lock("landscape").catch(() => {});
+    };
+    requestLock();
+    document.addEventListener("click", requestLock, { passive: true });
+  }
+}
+
+function syncOrientationGuard() {
+  const needsLandscape = isPortraitPhone();
+  document.body.classList.toggle("orientation-required", needsLandscape);
+  els.orientationGuard.hidden = !needsLandscape;
+}
+
+function isPortraitPhone() {
+  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const narrowScreen = window.matchMedia("(max-width: 960px)").matches;
+  const portrait = window.matchMedia("(orientation: portrait)").matches;
+  return coarsePointer && narrowScreen && portrait;
 }
 
 function toast(message, type = "success") {

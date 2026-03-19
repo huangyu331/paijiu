@@ -4,6 +4,7 @@
   "description": "纯前端单机版牌九小游戏",
   "start_url": "./index.html",
   "display": "standalone",
+  "orientation": "landscape",
   "background_color": "#2c0d10",
   "theme_color": "#4f0f14",
   "icons": []

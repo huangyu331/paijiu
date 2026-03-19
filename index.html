@@ -9,6 +9,14 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div class="orientation-guard" id="orientationGuard" aria-live="polite" hidden>
+      <div class="orientation-card">
+        <p class="panel-label">横屏游玩</p>
+        <h2>请将手机旋转到横屏</h2>
+        <p class="muted">牌桌和下注区已按横向视野设计，横屏后会自动继续游戏。</p>
+      </div>
+    </div>
+
     <div class="app-shell">
       <header class="top-bar">
         <button class="ghost-button" id="openProfilesButton">存档</button>
@@ -41,7 +49,6 @@
             <div class="hero-actions">
               <button class="primary-button mode-button" data-mode="small">小牌九</button>
               <button class="secondary-button mode-button" data-mode="challenge">挑战模式</button>
-              <button class="secondary-button mode-button" data-mode="endless">无尽模式</button>
               <button class="ghost-button" id="startTutorialButton">教学关卡</button>
             </div>
           </div>
@@ -57,31 +64,33 @@
           </div>
 
           <div class="table-surface">
-            <div class="wall-area">
-              <div class="wall-grid" id="wallGrid"></div>
+            <div class="table-center">
+              <div class="seat banker-seat">
+                <div class="seat-head">
+                  <span>庄家</span>
+                  <span class="seat-result" id="bankerResultLabel">待发牌</span>
+                </div>
+                <div class="tile-row" id="bankerTiles"></div>
+                <div class="hand-caption" id="bankerHandCaption">-</div>
+              </div>
+
               <div class="dice-box">
                 <span class="panel-label">骰子</span>
-                <div class="dice-values" id="diceValues">- -</div>
+                <div class="dice-values" id="diceValues" aria-label="骰子结果">
+                  <div class="die-face is-idle" data-value="0"></div>
+                  <div class="die-face is-idle" data-value="0"></div>
+                </div>
                 <div class="muted" id="diceSummary">尚未掷骰</div>
               </div>
-            </div>
 
-            <div class="seat banker-seat">
-              <div class="seat-head">
-                <span>庄家</span>
-                <span class="seat-result" id="bankerResultLabel">待发牌</span>
+              <div class="seat player-seat">
+                <div class="seat-head">
+                  <span>你的手牌</span>
+                  <span class="seat-result" id="playerResultLabel">待发牌</span>
+                </div>
+                <div class="tile-row" id="playerTiles"></div>
+                <div class="hand-caption" id="playerHandCaption">-</div>
               </div>
-              <div class="tile-row" id="bankerTiles"></div>
-              <div class="hand-caption" id="bankerHandCaption">-</div>
-            </div>
-
-            <div class="seat player-seat">
-              <div class="seat-head">
-                <span>你的手牌</span>
-                <span class="seat-result" id="playerResultLabel">待发牌</span>
-              </div>
-              <div class="tile-row" id="playerTiles"></div>
-              <div class="hand-caption" id="playerHandCaption">-</div>
             </div>
 
             <div class="round-banner" id="roundBanner">押注后开始本局</div>

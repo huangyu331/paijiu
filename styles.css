@@ -57,6 +57,50 @@ body::before {
   mask-image: radial-gradient(circle at center, black, transparent 85%);
 }
 
+.orientation-guard {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(255, 217, 135, 0.18), transparent 30%),
+    linear-gradient(145deg, rgba(34, 10, 12, 0.96), rgba(16, 39, 29, 0.96));
+}
+
+.orientation-card {
+  width: min(440px, 100%);
+  padding: 28px 24px;
+  border-radius: 28px;
+  border: 1px solid var(--line);
+  background: rgba(74, 20, 22, 0.88);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.orientation-card h2,
+.orientation-card p {
+  margin: 0;
+}
+
+.orientation-card h2 {
+  margin: 10px 0 12px;
+}
+
+body.orientation-required {
+  overflow: hidden;
+}
+
+body.orientation-required .app-shell,
+body.orientation-required .toast-stack {
+  visibility: hidden;
+}
+
+body.orientation-required .orientation-guard {
+  display: grid;
+}
+
 button,
 input {
   font: inherit;
@@ -234,6 +278,7 @@ button {
   gap: 18px;
   margin-top: 18px;
   padding: 18px;
+  justify-items: center;
   border-radius: 24px;
   background:
     radial-gradient(circle at 50% 0%, rgba(255, 205, 125, 0.12), transparent 40%),
@@ -241,28 +286,12 @@ button {
   border: 1px solid rgba(255, 243, 215, 0.08);
 }
 
-.wall-area {
+.table-center {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 16px;
-  align-items: start;
-}
-
-.wall-grid {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.wall-stack {
-  min-height: 42px;
-  border-radius: 14px;
-  border: 1px dashed rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.12);
-  display: grid;
-  place-items: center;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  justify-items: center;
 }
 
 .dice-box,
@@ -276,17 +305,77 @@ button {
   padding: 14px;
 }
 
+.dice-box {
+  min-width: 184px;
+  text-align: center;
+}
+
+.dice-values {
+  display: flex;
+  gap: 12px;
+  margin: 10px 0 8px;
+}
+
+.die-face {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  border: 1px solid rgba(92, 42, 14, 0.24);
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.96), rgba(241, 231, 216, 0.94) 58%, rgba(216, 192, 164, 0.98));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -4px 10px rgba(86, 54, 18, 0.14),
+    0 10px 20px rgba(0, 0, 0, 0.22);
+}
+
+.die-face.is-idle::after {
+  content: "?";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  color: rgba(63, 39, 17, 0.7);
+}
+
+.die-face.is-idle .die-pip {
+  display: none;
+}
+
+.die-pip {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #29160f;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.die-face.is-rolling {
+  animation: dice-roll 520ms cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
 .seat {
   display: grid;
   gap: 12px;
+  width: min(100%, 320px);
 }
 
 .seat-result {
   color: var(--gold-strong);
 }
 
+.seat-head,
+.hand-caption {
+  text-align: center;
+}
+
 .tile-row {
   display: flex;
+  justify-content: center;
   gap: 12px;
   min-height: 132px;
   flex-wrap: wrap;
@@ -533,6 +622,28 @@ button {
   }
 }
 
+@keyframes dice-roll {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  25% {
+    transform: rotate(16deg) translateY(-6px) scale(1.05);
+  }
+
+  50% {
+    transform: rotate(-14deg) translateY(4px) scale(0.96);
+  }
+
+  75% {
+    transform: rotate(10deg) translateY(-3px) scale(1.02);
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
 @media (max-width: 960px) {
   .layout,
   .info-grid {
@@ -541,14 +652,6 @@ button {
 
   .hero-actions {
     grid-template-columns: 1fr;
-  }
-
-  .wall-area {
-    grid-template-columns: 1fr;
-  }
-
-  .wall-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -572,7 +675,63 @@ button {
     height: 114px;
   }
 
+  .dice-box {
+    min-width: 0;
+  }
+
+  .die-face {
+    width: 52px;
+    height: 52px;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .table-center {
+    grid-template-columns: 1fr;
+  }
+
+  .dice-box {
+    order: 2;
+  }
+
+  .player-seat {
+    order: 3;
+  }
+}
+
+@media (max-width: 960px) and (orientation: landscape) {
+  .app-shell {
+    width: min(100vw - 20px, 1200px);
+    padding-top: 12px;
+  }
+
+  .top-bar {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .hero-panel,
+  .game-panel,
+  .card-panel {
+    border-radius: 22px;
+    padding: 16px;
+  }
+
+  .tile {
+    width: 72px;
+    height: 106px;
+  }
+
+  .wall-stack,
+  .dice-box,
+  .seat,
+  .history-item,
+  .stat-item,
+  .combo-item {
+    padding: 12px;
   }
 }
