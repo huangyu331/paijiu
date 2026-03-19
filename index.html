@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4f0f14" />
+    <title>牌九大师</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-bar">
+        <button class="ghost-button" id="openProfilesButton">存档</button>
+        <div class="brand-lockup">
+          <p class="eyebrow">纯前端单机版</p>
+          <h1>牌九大师</h1>
+        </div>
+        <button class="ghost-button" id="openSettingsButton">设置</button>
+      </header>
+
+      <main class="layout">
+        <section class="hero-panel">
+          <div class="player-summary">
+            <div class="avatar-wrap">
+              <img id="playerAvatar" alt="玩家头像" hidden />
+              <div class="avatar-fallback" id="avatarFallback">牌</div>
+            </div>
+            <div>
+              <p class="panel-label">当前存档</p>
+              <h2 id="playerName">访客玩家</h2>
+              <p class="muted" id="playerMeta">准备开局</p>
+            </div>
+          </div>
+
+          <div class="chips-panel">
+            <div>
+              <p class="panel-label">当前筹码</p>
+              <div class="chips-value" id="chipsValue">10,000</div>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-button mode-button" data-mode="small">小牌九</button>
+              <button class="secondary-button mode-button" data-mode="challenge">挑战模式</button>
+              <button class="secondary-button mode-button" data-mode="endless">无尽模式</button>
+              <button class="ghost-button" id="startTutorialButton">教学关卡</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="game-panel">
+          <div class="section-heading">
+            <div>
+              <p class="panel-label">对局桌面</p>
+              <h3 id="tableTitle">等待开始</h3>
+            </div>
+            <div class="status-pill" id="gameStatus">请选择模式并下注</div>
+          </div>
+
+          <div class="table-surface">
+            <div class="wall-area">
+              <div class="wall-grid" id="wallGrid"></div>
+              <div class="dice-box">
+                <span class="panel-label">骰子</span>
+                <div class="dice-values" id="diceValues">- -</div>
+                <div class="muted" id="diceSummary">尚未掷骰</div>
+              </div>
+            </div>
+
+            <div class="seat banker-seat">
+              <div class="seat-head">
+                <span>庄家</span>
+                <span class="seat-result" id="bankerResultLabel">待发牌</span>
+              </div>
+              <div class="tile-row" id="bankerTiles"></div>
+              <div class="hand-caption" id="bankerHandCaption">-</div>
+            </div>
+
+            <div class="seat player-seat">
+              <div class="seat-head">
+                <span>你的手牌</span>
+                <span class="seat-result" id="playerResultLabel">待发牌</span>
+              </div>
+              <div class="tile-row" id="playerTiles"></div>
+              <div class="hand-caption" id="playerHandCaption">-</div>
+            </div>
+
+            <div class="round-banner" id="roundBanner">押注后开始本局</div>
+          </div>
+
+          <div class="bet-panel">
+            <div>
+              <p class="panel-label">下注金额</p>
+              <div class="bet-value" id="betValue">500</div>
+            </div>
+            <div class="bet-actions">
+              <button class="ghost-button bet-adjust" data-action="decrease">-</button>
+              <button class="ghost-button bet-adjust" data-action="increase">+</button>
+              <button class="secondary-button" id="halfButton">一半</button>
+              <button class="secondary-button" id="maxButton">最大</button>
+              <button class="primary-button" id="dealButton">开始本局</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="info-grid">
+          <article class="card-panel">
+            <div class="section-heading">
+              <div>
+                <p class="panel-label">规则与牌型</p>
+                <h3>快速查询</h3>
+              </div>
+              <button class="ghost-button" id="openRulesButton">查看详情</button>
+            </div>
+            <div class="combo-list" id="comboPreview"></div>
+          </article>
+
+          <article class="card-panel">
+            <div class="section-heading">
+              <div>
+                <p class="panel-label">最近战绩</p>
+                <h3>历史记录</h3>
+              </div>
+            </div>
+            <div class="history-list" id="historyList"></div>
+          </article>
+
+          <article class="card-panel">
+            <div class="section-heading">
+              <div>
+                <p class="panel-label">个人数据</p>
+                <h3>统计概览</h3>
+              </div>
+            </div>
+            <div class="stats-grid" id="statsGrid"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="modal" id="profilesDialog">
+      <form method="dialog" class="modal-card">
+        <div class="section-heading">
+          <div>
+            <p class="panel-label">本地账户</p>
+            <h3>存档管理</h3>
+          </div>
+          <button class="ghost-button">关闭</button>
+        </div>
+        <div class="profile-list" id="profileList"></div>
+        <div class="profile-editor">
+          <label>
+            昵称
+            <input type="text" id="profileNameInput" maxlength="16" placeholder="输入新昵称" />
+          </label>
+          <label>
+            头像
+            <input type="file" id="avatarInput" accept="image/*" />
+          </label>
+          <button type="button" class="primary-button" id="createProfileButton">创建存档</button>
+        </div>
+        <div class="export-actions">
+          <button type="button" class="secondary-button" id="exportDataButton">导出数据</button>
+          <label class="secondary-button upload-button">
+            导入数据
+            <input type="file" id="importDataInput" accept="application/json" hidden />
+          </label>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="rulesDialog">
+      <form method="dialog" class="modal-card">
+        <div class="section-heading">
+          <div>
+            <p class="panel-label">教学与说明</p>
+            <h3>规则总览</h3>
+          </div>
+          <button class="ghost-button">关闭</button>
+        </div>
+        <div class="rules-content" id="rulesContent"></div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="settingsDialog">
+      <form method="dialog" class="modal-card">
+        <div class="section-heading">
+          <div>
+            <p class="panel-label">对局偏好</p>
+            <h3>规则设置</h3>
+          </div>
+          <button class="ghost-button">关闭</button>
+        </div>
+        <div class="settings-list">
+          <label class="toggle-row">
+            <span>特殊组合</span>
+            <input type="checkbox" id="specialCombosToggle" />
+          </label>
+          <label class="toggle-row">
+            <span>庄家优势</span>
+            <input type="checkbox" id="bankerAdvantageToggle" />
+          </label>
+          <label class="toggle-row">
+            <span>浅色主题</span>
+            <input type="checkbox" id="lightThemeToggle" />
+          </label>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
