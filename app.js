@@ -139,6 +139,8 @@ const state = {
   },
 };
 
+const DIE_FACE_ORDER = [1, 6, 2, 5, 3, 4];
+
 const els = mapElements();
 
 boot();
@@ -356,40 +358,83 @@ function refreshTable() {
   }
 
   const visibleDice = state.ui.stage === "rolling" ? round.rollingDice || round.dice : round.dice;
+  const allRevealed = areAllCardsRevealed(round);
   renderDice(visibleDice, state.ui.stage === "rolling");
   els.diceSummary.textContent = state.ui.stage === "rolling" ? "骰盅摇动中" : `起始牌墙位置 ${round.startIndex + 1}`;
-  renderTiles(els.bankerTiles, round.revealed ? round.bankerTiles : [{ back: true }, { back: true }]);
-  renderTiles(els.playerTiles, round.revealed ? round.playerTiles : [{ back: true }, { back: true }]);
-  els.bankerHandCaption.textContent = round.revealed ? round.bankerEval.description : "庄家即将亮牌";
-  els.playerHandCaption.textContent = round.revealed ? round.playerEval.description : "请等待翻牌";
-  els.bankerResultLabel.textContent = round.revealed ? round.bankerEval.title : "牌背";
-  els.playerResultLabel.textContent = round.revealed ? round.playerEval.title : "牌背";
+  renderTiles(
+    els.bankerTiles,
+    round.bankerTiles.length
+      ? round.bankerTiles.map((tile, index) => ({
+          ...tile,
+          hidden: !round.revealedBanker[index],
+          spotlight: round.activeReveal?.side === "banker" && round.activeReveal?.index === index,
+        }))
+      : [{ back: true }, { back: true }]
+  );
+  renderTiles(
+    els.playerTiles,
+    round.playerTiles.length
+      ? round.playerTiles.map((tile, index) => ({
+          ...tile,
+          hidden: !round.revealedPlayer[index],
+          spotlight: round.activeReveal?.side === "player" && round.activeReveal?.index === index,
+        }))
+      : [{ back: true }, { back: true }]
+  );
+  els.bankerHandCaption.textContent = allRevealed ? round.bankerEval.description : "庄家即将亮牌";
+  els.playerHandCaption.textContent = allRevealed ? round.playerEval.description : "请等待翻牌";
+  els.bankerResultLabel.textContent = allRevealed ? round.bankerEval.title : "牌背";
+  els.playerResultLabel.textContent = allRevealed ? round.playerEval.title : "牌背";
   els.roundBanner.textContent = round.banner;
 }
 
 function renderTiles(container, tiles) {
+  const nextKey = JSON.stringify(
+    tiles.map((tile) => ({
+      code: tile.code || tile.name || "back",
+      back: Boolean(tile.back),
+      hidden: Boolean(tile.hidden),
+      spotlight: Boolean(tile.spotlight),
+    }))
+  );
+  if (container.dataset.renderKey === nextKey) {
+    return;
+  }
+  container.dataset.renderKey = nextKey;
   container.innerHTML = "";
   tiles.forEach((tile) => container.appendChild(buildTile(tile)));
 }
 
 function buildTile(tile) {
   const node = document.createElement("div");
-  node.className = `tile${tile.back ? " back" : ""}`;
+  node.className = `tile${tile.hidden ? " hidden-face" : ""}${tile.back ? " back" : ""}${tile.spotlight ? " spotlight" : ""}`;
   if (tile.back) {
     return node;
   }
 
+  const body = document.createElement("div");
+  body.className = "tile-body";
+
+  const front = document.createElement("div");
+  front.className = "tile-face tile-front";
+
+  const back = document.createElement("div");
+  back.className = "tile-face tile-back";
+
   const label = document.createElement("div");
   label.className = "tile-name";
   label.textContent = tile.name;
-  node.appendChild(label);
+  front.appendChild(label);
 
   const divider = document.createElement("div");
   divider.className = "tile-divider";
-  node.appendChild(divider);
+  front.appendChild(divider);
 
-  node.appendChild(buildHalf(tile.top, "top"));
-  node.appendChild(buildHalf(tile.bottom, "bottom"));
+  front.appendChild(buildHalf(tile.top, "top"));
+  front.appendChild(buildHalf(tile.bottom, "bottom"));
+  body.appendChild(front);
+  body.appendChild(back);
+  node.appendChild(body);
   return node;
 }
 
@@ -398,18 +443,35 @@ function renderDice(values, rolling) {
   els.diceValues.innerHTML = "";
   dice.forEach((value, index) => {
     const die = document.createElement("div");
-    die.className = `die-face${rolling ? " is-rolling" : ""}${value ? "" : " is-idle"}`;
-    die.setAttribute("data-value", String(value));
+    die.className = `die${rolling ? " is-rolling" : ""}${value ? "" : " is-idle"}`;
+    die.setAttribute("data-value", String(value || 1));
     die.setAttribute("aria-hidden", "true");
-    const positions = PIP_POSITIONS[Math.max(1, Math.min(6, value || 1))];
-    positions.forEach((point) => {
-      const pip = document.createElement("span");
-      pip.className = "die-pip";
-      pip.style.left = `${point.x}%`;
-      pip.style.top = `${point.y}%`;
-      die.appendChild(pip);
-    });
     die.style.animationDelay = `${index * 90}ms`;
+
+    const cube = document.createElement("div");
+    cube.className = "die-cube";
+    DIE_FACE_ORDER.forEach((faceValue, faceIndex) => {
+      const face = document.createElement("div");
+      face.className = `die-face face-${faceIndex + 1}`;
+      const positions = PIP_POSITIONS[faceValue];
+      positions.forEach((point) => {
+        const pip = document.createElement("span");
+        pip.className = "die-pip";
+        pip.style.left = `${point.x}%`;
+        pip.style.top = `${point.y}%`;
+        face.appendChild(pip);
+      });
+      cube.appendChild(face);
+    });
+
+    if (!value) {
+      const idleMark = document.createElement("div");
+      idleMark.className = "die-idle-mark";
+      idleMark.textContent = "?";
+      die.appendChild(idleMark);
+    }
+
+    die.appendChild(cube);
     els.diceValues.appendChild(die);
   });
 }
@@ -655,9 +717,11 @@ async function startRound() {
     deck,
     playerTiles: [],
     bankerTiles: [],
+    revealedBanker: [false, false],
+    revealedPlayer: [false, false],
+    activeReveal: null,
     playerEval: null,
     bankerEval: null,
-    revealed: false,
     banner: "正在砌牌",
   };
   refreshAll();
@@ -670,7 +734,7 @@ async function startRound() {
   state.ui.round.rollingDice = null;
   state.ui.round.banner = "骰子落定，决定起牌位置";
   refreshTable();
-  await pause(180);
+  await pause(4000);
 
   state.ui.stage = "dealing";
   const orderedDeck = rotateDealDeck(deck, startIndex);
@@ -682,9 +746,9 @@ async function startRound() {
     ...stack,
     count: index === startIndex ? 0 : stack.count,
   }));
-  state.ui.round.banner = "逆时针派牌中";
+  state.ui.round.banner = "牌已落桌，准备开牌";
   refreshTable();
-  await pause(700);
+  await pause(250);
 
   state.ui.stage = "revealing";
   const settings = getActiveProfile().settings;
@@ -693,10 +757,31 @@ async function startRound() {
   const outcome = compareHands(playerEval, bankerEval, settings.bankerAdvantage);
   state.ui.round.playerEval = playerEval;
   state.ui.round.bankerEval = bankerEval;
-  state.ui.round.revealed = true;
+  state.ui.round.banner = "庄家先开第一张";
+  state.ui.round.activeReveal = { side: "banker", index: 0 };
+  refreshTable();
+  state.ui.round.revealedBanker[0] = true;
+  refreshTable();
+  await pause(420);
+  state.ui.round.banner = "庄家再开一张";
+  state.ui.round.activeReveal = { side: "banker", index: 1 };
+  state.ui.round.revealedBanker[1] = true;
+  refreshTable();
+  await pause(420);
+  state.ui.round.banner = "闲家先开第一张";
+  state.ui.round.activeReveal = { side: "player", index: 0 };
+  state.ui.round.revealedPlayer[0] = true;
+  refreshTable();
+  await pause(420);
+  state.ui.round.banner = "你翻开最后一张";
+  state.ui.round.activeReveal = { side: "player", index: 1 };
+  state.ui.round.revealedPlayer[1] = true;
+  refreshTable();
+  await pause(520);
+  state.ui.round.activeReveal = null;
   state.ui.round.banner = outcome.banner;
   refreshTable();
-  await pause(350);
+  await pause(220);
 
   settleRound(outcome);
   state.ui.stage = "idle";
@@ -862,6 +947,10 @@ async function animateDiceRoll(durationMs = 650) {
 
 function randomDieValue() {
   return 1 + Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32) * 6);
+}
+
+function areAllCardsRevealed(round) {
+  return Boolean(round?.revealedBanker?.every(Boolean) && round?.revealedPlayer?.every(Boolean));
 }
 
 function applyTheme() {

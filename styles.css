@@ -360,34 +360,100 @@ button {
   display: flex;
   gap: 12px;
   margin: 10px 0 8px;
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+
+.die {
+  --die-size: 58px;
+  position: relative;
+  width: var(--die-size);
+  height: var(--die-size);
+  transform-style: preserve-3d;
+}
+
+.die-cube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 220ms ease;
+}
+
+.die[data-value="1"] .die-cube {
+  transform: rotateX(0deg) rotateY(0deg);
+}
+
+.die[data-value="2"] .die-cube {
+  transform: rotateX(-90deg);
+}
+
+.die[data-value="3"] .die-cube {
+  transform: rotateY(-90deg);
+}
+
+.die[data-value="4"] .die-cube {
+  transform: rotateY(90deg);
+}
+
+.die[data-value="5"] .die-cube {
+  transform: rotateX(90deg);
+}
+
+.die[data-value="6"] .die-cube {
+  transform: rotateY(180deg);
 }
 
 .die-face {
-  position: relative;
-  width: 58px;
-  height: 58px;
+  position: absolute;
+  inset: 0;
   border-radius: 16px;
   border: 1px solid rgba(92, 42, 14, 0.24);
   background:
-    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.96), rgba(241, 231, 216, 0.94) 58%, rgba(216, 192, 164, 0.98));
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.98), rgba(241, 231, 216, 0.95) 58%, rgba(216, 192, 164, 0.98));
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -4px 10px rgba(86, 54, 18, 0.14),
-    0 10px 20px rgba(0, 0, 0, 0.22);
+    inset 0 2px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -5px 10px rgba(86, 54, 18, 0.16),
+    0 8px 14px rgba(0, 0, 0, 0.16);
+  backface-visibility: hidden;
 }
 
-.die-face.is-idle::after {
-  content: "?";
+.face-1 {
+  transform: translateZ(calc(var(--die-size) / 2));
+}
+
+.face-2 {
+  transform: rotateY(180deg) translateZ(calc(var(--die-size) / 2));
+}
+
+.face-3 {
+  transform: rotateX(90deg) translateZ(calc(var(--die-size) / 2));
+}
+
+.face-4 {
+  transform: rotateX(-90deg) translateZ(calc(var(--die-size) / 2));
+}
+
+.face-5 {
+  transform: rotateY(90deg) translateZ(calc(var(--die-size) / 2));
+}
+
+.face-6 {
+  transform: rotateY(-90deg) translateZ(calc(var(--die-size) / 2));
+}
+
+.die.is-idle .die-cube {
+  opacity: 0.18;
+  transform: rotateX(-18deg) rotateY(24deg);
+}
+
+.die-idle-mark {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   font-size: 24px;
-  color: rgba(63, 39, 17, 0.7);
-}
-
-.die-face.is-idle .die-pip {
-  display: none;
+  color: rgba(63, 39, 17, 0.72);
+  z-index: 2;
 }
 
 .die-pip {
@@ -400,9 +466,13 @@ button {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.die-face.is-rolling {
+.die.is-rolling .die-cube {
   animation: dice-roll 620ms cubic-bezier(0.22, 0.74, 0.2, 1) infinite;
   will-change: transform;
+}
+
+.die.is-rolling {
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.28));
 }
 
 .seat {
@@ -431,6 +501,7 @@ button {
   gap: 12px;
   min-height: 132px;
   flex-wrap: wrap;
+  perspective: 1200px;
 }
 
 .tile {
@@ -438,13 +509,88 @@ button {
   width: 90px;
   height: 128px;
   border-radius: 18px;
+  color: #201009;
+  transform-origin: center bottom;
+  transform: perspective(700px) rotateX(8deg) rotateY(-6deg) translateZ(0);
+  animation: card-rise 420ms ease;
+  transform-style: preserve-3d;
+}
+
+.tile.spotlight {
+  animation: reveal-spotlight 460ms cubic-bezier(0.18, 0.72, 0.2, 1);
+}
+
+.tile::before,
+.tile::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.tile::before {
+  top: 6px;
+  right: -7px;
+  bottom: 8px;
+  width: 10px;
+  border-radius: 0 16px 16px 0;
+  background: linear-gradient(180deg, rgba(224, 215, 200, 0.95), rgba(196, 172, 145, 0.92));
+  transform: skewY(-18deg);
+}
+
+.tile::after {
+  left: 10px;
+  right: 6px;
+  bottom: -10px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+  filter: blur(6px);
+  z-index: -1;
+}
+
+.tile-body {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 620ms cubic-bezier(0.2, 0.72, 0.2, 1);
+}
+
+.tile.hidden-face .tile-body {
+  transform: rotateY(180deg);
+}
+
+.tile-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.tile-front {
   background: #f5efe4;
   border: 1px solid rgba(62, 26, 16, 0.25);
-  color: #201009;
   box-shadow: 0 14px 22px rgba(0, 0, 0, 0.18);
-  overflow: hidden;
-  transform-origin: center bottom;
-  animation: card-rise 420ms ease;
+}
+
+.tile-back {
+  background:
+    radial-gradient(circle at center, rgba(255, 214, 142, 0.18), transparent 40%),
+    linear-gradient(145deg, #5d151a, #3d1011);
+  border: 1px solid rgba(255, 224, 161, 0.28);
+  box-shadow:
+    inset 0 0 0 10px rgba(255, 224, 161, 0.06),
+    inset 0 0 0 18px rgba(255, 224, 161, 0.03),
+    0 14px 22px rgba(0, 0, 0, 0.2);
+  transform: rotateY(180deg);
+}
+
+.tile.spotlight .tile-front,
+.tile.spotlight .tile-back {
+  box-shadow:
+    0 0 0 1px rgba(255, 223, 148, 0.24),
+    0 18px 28px rgba(0, 0, 0, 0.24),
+    0 0 24px rgba(255, 223, 148, 0.16);
 }
 
 .tile.back {
@@ -452,22 +598,10 @@ button {
     radial-gradient(circle at center, rgba(255, 214, 142, 0.18), transparent 40%),
     linear-gradient(145deg, #5d151a, #3d1011);
   border-color: rgba(255, 224, 161, 0.28);
-}
-
-.tile.back::before,
-.tile.back::after {
-  content: "";
-  position: absolute;
-  inset: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 224, 161, 0.22);
-}
-
-.tile.back::after {
-  inset: 18px;
-  background:
-    linear-gradient(45deg, transparent 44%, rgba(255, 219, 153, 0.24) 45%, transparent 46%),
-    linear-gradient(-45deg, transparent 44%, rgba(255, 219, 153, 0.2) 45%, transparent 46%);
+  box-shadow:
+    inset 0 0 0 10px rgba(255, 224, 161, 0.06),
+    inset 0 0 0 18px rgba(255, 224, 161, 0.03),
+    0 14px 22px rgba(0, 0, 0, 0.2);
 }
 
 .tile-name {
@@ -688,12 +822,26 @@ button {
 @keyframes card-rise {
   from {
     opacity: 0;
-    transform: translateY(10px) rotate(-3deg);
+    transform: perspective(700px) rotateX(12deg) rotateY(-10deg) translateY(10px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) rotate(0deg);
+    transform: perspective(700px) rotateX(8deg) rotateY(-6deg) translateY(0);
+  }
+}
+
+@keyframes reveal-spotlight {
+  0% {
+    transform: perspective(700px) rotateX(8deg) rotateY(-6deg) translateY(0);
+  }
+
+  40% {
+    transform: perspective(700px) rotateX(10deg) rotateY(-7deg) translateY(-10px);
+  }
+
+  100% {
+    transform: perspective(700px) rotateX(8deg) rotateY(-6deg) translateY(0);
   }
 }
 
@@ -758,9 +906,8 @@ button {
     min-width: 0;
   }
 
-  .die-face {
-    width: 52px;
-    height: 52px;
+  .die {
+    --die-size: 52px;
   }
 
   .stats-grid {
