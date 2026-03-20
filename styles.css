@@ -88,6 +88,10 @@ body::before {
   margin: 10px 0 12px;
 }
 
+.orientation-continue {
+  margin-top: 18px;
+}
+
 body.orientation-required {
   overflow: hidden;
 }

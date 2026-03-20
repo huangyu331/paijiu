@@ -188,6 +188,7 @@ function mapElements() {
     rulesContent: document.getElementById("rulesContent"),
     toastStack: document.getElementById("toastStack"),
     orientationGuard: document.getElementById("orientationGuard"),
+    orientationContinueButton: document.getElementById("orientationContinueButton"),
     openDetailsButton: document.getElementById("openDetailsButton"),
     createProfileButton: document.getElementById("createProfileButton"),
     exportDataButton: document.getElementById("exportDataButton"),
@@ -223,6 +224,14 @@ function bindEvents() {
   });
 
   els.dealButton.addEventListener("click", startRound);
+  els.orientationContinueButton.addEventListener("click", () => {
+    if (canForceDismissOrientationGuard()) {
+      document.body.classList.remove("orientation-required");
+      els.orientationGuard.hidden = true;
+      return;
+    }
+    toast("请先将设备旋转到横屏后再继续。", "error");
+  });
   els.openDetailsButton.addEventListener("click", () => {
     syncSettingsInputs();
     els.detailsDialog.showModal();
@@ -966,7 +975,12 @@ function registerServiceWorker() {
 function setupOrientationGuard() {
   syncOrientationGuard();
   window.addEventListener("resize", syncOrientationGuard);
-  window.addEventListener("orientationchange", syncOrientationGuard);
+  window.addEventListener("orientationchange", () => {
+    syncOrientationGuard();
+    window.setTimeout(syncOrientationGuard, 120);
+    window.setTimeout(syncOrientationGuard, 320);
+  });
+  window.visualViewport?.addEventListener("resize", syncOrientationGuard);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
       syncOrientationGuard();
@@ -991,8 +1005,19 @@ function syncOrientationGuard() {
 function isPortraitPhone() {
   const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
   const narrowScreen = window.matchMedia("(max-width: 960px)").matches;
-  const portrait = window.matchMedia("(orientation: portrait)").matches;
+  const byViewport = window.innerHeight > window.innerWidth;
+  const byScreenOrientation = screen.orientation?.type?.startsWith("portrait") ?? false;
+  const hasWindowOrientation = typeof window.orientation === "number";
+  const byAngle = hasWindowOrientation ? Math.abs(window.orientation) !== 90 : false;
+  const portrait = byViewport || byScreenOrientation || byAngle;
   return coarsePointer && narrowScreen && portrait;
+}
+
+function canForceDismissOrientationGuard() {
+  const landscapeByViewport = window.innerWidth > window.innerHeight;
+  const landscapeByOrientation = screen.orientation?.type?.startsWith("landscape") ?? false;
+  const landscapeByAngle = typeof window.orientation === "number" ? Math.abs(window.orientation) === 90 : false;
+  return landscapeByViewport || landscapeByOrientation || landscapeByAngle;
 }
 
 function toast(message, type = "success") {
