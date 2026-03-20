@@ -117,6 +117,21 @@ button {
   padding: 24px 0 40px;
 }
 
+.compact-shell {
+  width: min(980px, calc(100vw - 24px));
+}
+
+.table-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 12px 0 32px;
+}
+
+.main-table-panel {
+  width: min(100%, 900px);
+}
+
 .top-bar,
 .section-heading,
 .player-summary,
@@ -158,6 +173,25 @@ button {
 .card-panel {
   border-radius: 28px;
   padding: 20px;
+}
+
+.table-topbar {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.table-bankroll {
+  text-align: center;
+}
+
+.details-button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .brand-lockup {
@@ -288,10 +322,18 @@ button {
 
 .table-center {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 18px;
-  align-items: center;
+  width: min(100%, 760px);
+  grid-template-columns: 1fr;
+  gap: 10px;
   justify-items: center;
+}
+
+.table-middle {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  margin: -6px 0;
+  z-index: 1;
 }
 
 .dice-box,
@@ -306,8 +348,12 @@ button {
 }
 
 .dice-box {
-  min-width: 184px;
+  min-width: 220px;
   text-align: center;
+  background:
+    radial-gradient(circle at top, rgba(255, 220, 148, 0.18), rgba(5, 19, 13, 0.24) 60%),
+    rgba(5, 19, 13, 0.36);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.24);
 }
 
 .dice-values {
@@ -355,13 +401,19 @@ button {
 }
 
 .die-face.is-rolling {
-  animation: dice-roll 520ms cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  animation: dice-roll 620ms cubic-bezier(0.22, 0.74, 0.2, 1) infinite;
+  will-change: transform;
 }
 
 .seat {
   display: grid;
   gap: 12px;
-  width: min(100%, 320px);
+  width: min(100%, 420px);
+}
+
+.banker-seat,
+.player-seat {
+  justify-self: center;
 }
 
 .seat-result {
@@ -531,6 +583,29 @@ button {
   padding: 20px;
 }
 
+.details-modal {
+  width: min(960px, calc(100vw - 20px));
+}
+
+.detail-hero,
+.detail-section {
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  padding: 18px;
+}
+
+.details-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.details-grid .detail-section:last-child {
+  grid-column: 1 / -1;
+}
+
 .profile-list {
   display: grid;
   gap: 10px;
@@ -624,23 +699,27 @@ button {
 
 @keyframes dice-roll {
   0% {
-    transform: rotate(0deg) scale(1);
+    transform: perspective(320px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.94);
   }
 
-  25% {
-    transform: rotate(16deg) translateY(-6px) scale(1.05);
+  20% {
+    transform: perspective(320px) rotateX(180deg) rotateY(220deg) rotateZ(120deg) translateY(-10px) scale(1.08);
   }
 
-  50% {
-    transform: rotate(-14deg) translateY(4px) scale(0.96);
+  40% {
+    transform: perspective(320px) rotateX(360deg) rotateY(420deg) rotateZ(240deg) translateY(6px) scale(0.92);
   }
 
-  75% {
-    transform: rotate(10deg) translateY(-3px) scale(1.02);
+  60% {
+    transform: perspective(320px) rotateX(540deg) rotateY(650deg) rotateZ(360deg) translateY(-8px) scale(1.1);
+  }
+
+  80% {
+    transform: perspective(320px) rotateX(720deg) rotateY(860deg) rotateZ(540deg) translateY(4px) scale(0.95);
   }
 
   100% {
-    transform: rotate(0deg) scale(1);
+    transform: perspective(320px) rotateX(900deg) rotateY(1080deg) rotateZ(720deg) scale(1);
   }
 }
 
@@ -687,19 +766,28 @@ button {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+
+  .details-button {
+    position: static;
+    transform: none;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
   .table-center {
-    grid-template-columns: 1fr;
+    width: 100%;
   }
 
-  .dice-box {
-    order: 2;
+  .table-middle {
+    margin: 0;
   }
 
-  .player-seat {
-    order: 3;
+  .seat {
+    width: 100%;
   }
 }
 

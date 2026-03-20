@@ -98,7 +98,6 @@ const SPECIAL_HANDS = [
 
 const MODE_META = {
   small: { title: "小牌九", description: "标准 2 张快节奏对局" },
-  challenge: { title: "挑战模式", description: "目标是在有限筹码下刷新盈利纪录" },
 };
 
 const RULES_SECTIONS = [
@@ -162,8 +161,6 @@ function mapElements() {
     playerMeta: document.getElementById("playerMeta"),
     chipsValue: document.getElementById("chipsValue"),
     betValue: document.getElementById("betValue"),
-    gameStatus: document.getElementById("gameStatus"),
-    tableTitle: document.getElementById("tableTitle"),
     diceValues: document.getElementById("diceValues"),
     diceSummary: document.getElementById("diceSummary"),
     bankerTiles: document.getElementById("bankerTiles"),
@@ -185,18 +182,13 @@ function mapElements() {
     specialCombosToggle: document.getElementById("specialCombosToggle"),
     bankerAdvantageToggle: document.getElementById("bankerAdvantageToggle"),
     lightThemeToggle: document.getElementById("lightThemeToggle"),
-    profilesDialog: document.getElementById("profilesDialog"),
-    rulesDialog: document.getElementById("rulesDialog"),
-    settingsDialog: document.getElementById("settingsDialog"),
+    detailsDialog: document.getElementById("detailsDialog"),
     rulesContent: document.getElementById("rulesContent"),
     toastStack: document.getElementById("toastStack"),
     orientationGuard: document.getElementById("orientationGuard"),
-    openProfilesButton: document.getElementById("openProfilesButton"),
-    openRulesButton: document.getElementById("openRulesButton"),
-    openSettingsButton: document.getElementById("openSettingsButton"),
+    openDetailsButton: document.getElementById("openDetailsButton"),
     createProfileButton: document.getElementById("createProfileButton"),
     exportDataButton: document.getElementById("exportDataButton"),
-    startTutorialButton: document.getElementById("startTutorialButton"),
     halfButton: document.getElementById("halfButton"),
     maxButton: document.getElementById("maxButton"),
     dealButton: document.getElementById("dealButton"),
@@ -204,14 +196,6 @@ function mapElements() {
 }
 
 function bindEvents() {
-  document.querySelectorAll(".mode-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.ui.mode = button.dataset.mode;
-      state.ui.round = null;
-      refreshAll();
-    });
-  });
-
   document.querySelectorAll(".bet-adjust").forEach((button) => {
     button.addEventListener("click", () => {
       const profile = getActiveProfile();
@@ -237,17 +221,14 @@ function bindEvents() {
   });
 
   els.dealButton.addEventListener("click", startRound);
-  els.openProfilesButton.addEventListener("click", () => renderProfiles(true));
-  els.openRulesButton.addEventListener("click", () => els.rulesDialog.showModal());
-  els.openSettingsButton.addEventListener("click", () => {
+  els.openDetailsButton.addEventListener("click", () => {
     syncSettingsInputs();
-    els.settingsDialog.showModal();
+    els.detailsDialog.showModal();
   });
   els.createProfileButton.addEventListener("click", createProfileFromInput);
   els.exportDataButton.addEventListener("click", exportData);
   els.importDataInput.addEventListener("change", importData);
   els.avatarInput.addEventListener("change", handleAvatarSelection);
-  els.startTutorialButton.addEventListener("click", openTutorial);
 
   els.specialCombosToggle.addEventListener("change", () => {
     getActiveProfile().settings.specialCombos = els.specialCombosToggle.checked;
@@ -296,7 +277,6 @@ function createProfile(name, avatar = "") {
       bestStreak: 0,
       currentStreak: 0,
       profit: 0,
-      challengeBest: 0,
     },
     settings: {
       specialCombos: true,
@@ -338,17 +318,15 @@ function refreshAll() {
   refreshTable();
   renderHistory();
   renderStats();
-  renderProfiles(false);
+  renderProfiles();
   syncSettingsInputs();
 }
 
 function refreshHeader() {
   const profile = getActiveProfile();
-  const mode = MODE_META[state.ui.mode];
   els.playerName.textContent = profile.nickname;
-  els.playerMeta.textContent = `${mode.title} · ${mode.description}`;
+  els.playerMeta.textContent = `总局数 ${formatNumber(profile.stats.rounds)} · 总盈利 ${formatSigned(profile.stats.profit)}`;
   els.chipsValue.textContent = formatNumber(profile.chips);
-  els.tableTitle.textContent = `${mode.title}桌`;
   els.playerAvatar.hidden = !profile.avatar;
   els.avatarFallback.hidden = Boolean(profile.avatar);
   if (profile.avatar) {
@@ -364,7 +342,6 @@ function refreshBet() {
 
 function refreshTable() {
   const round = state.ui.round;
-  els.gameStatus.textContent = state.ui.stage === "idle" ? "请选择模式并下注" : statusText(state.ui.stage);
   if (!round) {
     renderTiles(els.bankerTiles, [{ back: true }, { back: true }]);
     renderTiles(els.playerTiles, [{ back: true }, { back: true }]);
@@ -493,15 +470,15 @@ function renderStats() {
     ["胜率", winRate],
     ["最高连胜", formatNumber(stats.bestStreak)],
     ["总盈利", formatSigned(stats.profit)],
-    ["挑战最高", formatSigned(stats.challengeBest)],
     ["当前连胜", formatNumber(stats.currentStreak)],
+    ["当前筹码", formatNumber(getActiveProfile().chips)],
   ];
   els.statsGrid.innerHTML = items
     .map(([label, value]) => `<div class="stat-item"><strong>${value}</strong><p class="muted">${label}</p></div>`)
     .join("");
 }
 
-function renderProfiles(openDialog) {
+function renderProfiles() {
   const activeId = state.db.activeProfileId;
   els.profileList.innerHTML = state.db.profiles
     .map((profile) => {
@@ -537,10 +514,6 @@ function renderProfiles(openDialog) {
       }
     });
   });
-
-  if (openDialog) {
-    els.profilesDialog.showModal();
-  }
 }
 
 function syncSettingsInputs() {
@@ -751,10 +724,6 @@ function settleRound(outcome) {
   profile.chips += delta;
   profile.stats.rounds += 1;
   profile.stats.profit += delta;
-  if (state.ui.mode === "challenge") {
-    profile.stats.challengeBest = Math.max(profile.stats.challengeBest, profile.stats.profit);
-  }
-
   profile.history.unshift({
     timestamp: new Date().toISOString(),
     mode: MODE_META[round.mode].title,
@@ -897,11 +866,6 @@ function randomDieValue() {
 
 function applyTheme() {
   document.body.dataset.theme = state.db.preferences.theme === "light" ? "light" : "dark";
-}
-
-function openTutorial() {
-  els.rulesDialog.showModal();
-  toast("先看规则，再开一局会更容易上手。", "success");
 }
 
 function registerServiceWorker() {
